@@ -4,7 +4,8 @@ import * as FileSystem from 'expo-file-system';
 // Your OpenAI API key should be stored securely
 // For development purposes, you can set it here, but for production,
 // consider using environment variables or a secure storage solution
-const OPENAI_API_KEY = 'your-openai-api-key';
+// TODO: Replace with your actual OpenAI API key
+const OPENAI_API_KEY = 'sk-...';
 
 /**
  * Service for interacting with OpenAI APIs
