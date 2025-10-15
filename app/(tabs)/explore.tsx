@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { Platform, StyleSheet, View, Alert, TouchableOpacity } from 'react-native';
 
 import { Collapsible } from '@/components/ui/collapsible';
 import { ExternalLink } from '@/components/external-link';
@@ -8,8 +9,54 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Fonts } from '@/constants/theme';
+import { AudioRecorder } from '@/components/audio/audio-recorder';
 
-export default function TabTwoScreen() {
+export default function FeaturesScreen() {
+  const [activeFeature, setActiveFeature] = useState<string | null>(null);
+  const [transcription, setTranscription] = useState<string | null>(null);
+
+  const handleTranscriptionComplete = (text: string) => {
+    setTranscription(text);
+  };
+
+  const handleError = (error: Error) => {
+    Alert.alert('Error', error.message || 'An error occurred during transcription');
+  };
+  
+  const renderFeatureContent = () => {
+    switch (activeFeature) {
+      case 'transcription':
+        return (
+          <View style={styles.featureContainer}>
+            <ThemedText style={styles.featureTitle}>Voice to Text</ThemedText>
+            <ThemedText style={styles.description}>
+              Speak into your device&apos;s microphone and get real-time transcriptions using OpenAI&apos;s Whisper API.
+            </ThemedText>
+            
+            <View style={styles.recorderContainer}>
+              <AudioRecorder 
+                onTranscriptionComplete={handleTranscriptionComplete}
+                onError={handleError}
+              />
+            </View>
+            
+            {transcription && (
+              <View style={styles.resultContainer}>
+                <ThemedText style={styles.resultTitle}>Transcription Result:</ThemedText>
+                <ThemedText style={styles.transcriptionText}>{transcription}</ThemedText>
+              </View>
+            )}
+          </View>
+        );
+      default:
+        return (
+          <ThemedText style={styles.selectFeatureText}>
+            Select a feature from above to get started.
+          </ThemedText>
+        );
+    }
+  };
+  
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
@@ -17,7 +64,7 @@ export default function TabTwoScreen() {
         <IconSymbol
           size={310}
           color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
+          name="star.fill"
           style={styles.headerImage}
         />
       }>
@@ -27,10 +74,31 @@ export default function TabTwoScreen() {
           style={{
             fontFamily: Fonts.rounded,
           }}>
-          Explore
+          Features
         </ThemedText>
       </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
+      <ThemedText style={styles.subtitle}>Explore the different features available in this app.</ThemedText>
+      
+      <View style={styles.featuresMenu}>
+        <TouchableOpacity
+          style={[
+            styles.featureButton,
+            activeFeature === 'transcription' && styles.activeFeatureButton
+          ]}
+          onPress={() => setActiveFeature('transcription')}>
+          <IconSymbol size={24} name="mic.fill" color={activeFeature === 'transcription' ? '#FFFFFF' : '#000000'} />
+          <ThemedText style={[
+            styles.featureButtonText,
+            activeFeature === 'transcription' && styles.activeFeatureButtonText
+          ]}>
+            Voice Transcription
+          </ThemedText>
+        </TouchableOpacity>
+        
+        {/* Add more feature buttons here in the future */}
+      </View>
+      
+      {renderFeatureContent()}
       <Collapsible title="File-based routing">
         <ThemedText>
           This app has two screens:{' '}
@@ -108,5 +176,81 @@ const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     gap: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  featuresMenu: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    marginVertical: 15,
+    gap: 10,
+  },
+  featureButton: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minWidth: 180,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  activeFeatureButton: {
+    backgroundColor: '#0A84FF',
+    borderColor: '#0A74E0',
+  },
+  featureButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  activeFeatureButtonText: {
+    color: '#FFFFFF',
+  },
+  selectFeatureText: {
+    textAlign: 'center',
+    marginTop: 30,
+    fontSize: 16,
+    opacity: 0.7,
+    fontStyle: 'italic',
+  },
+  featureContainer: {
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  featureTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  description: {
+    fontSize: 16,
+    marginBottom: 25,
+    lineHeight: 22,
+  },
+  recorderContainer: {
+    marginVertical: 20,
+    alignItems: 'center',
+  },
+  resultContainer: {
+    marginTop: 20,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+  },
+  resultTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  transcriptionText: {
+    fontSize: 16,
+    lineHeight: 24,
   },
 });
