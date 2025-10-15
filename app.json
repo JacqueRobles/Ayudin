@@ -9,7 +9,10 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "statusBar": {
+        "hidden": true
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,9 +22,11 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "permissions": ["RECORD_AUDIO", "WRITE_EXTERNAL_STORAGE", "READ_EXTERNAL_STORAGE"],
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.mandari.ayudinapp"
+      "package": "com.mandari.ayudinapp",
+      "statusBar": {
+        "hidden": true
+      }
     },
     "web": {
       "output": "static",
