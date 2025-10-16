@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, SafeAreaView, Alert } from 'react-native';
+import { View, StyleSheet, SafeAreaView, Alert, Text } from 'react-native';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
@@ -14,6 +14,8 @@ export default function HomeScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [transcription, setTranscription] = useState<string | null>(null);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const [isRateLimited, setIsRateLimited] = useState(false);
 
   useEffect(() => {
     // Request audio recording permissions when component mounts
@@ -31,6 +33,28 @@ export default function HomeScreen() {
 
     getPermissions();
   }, []);
+  
+  // Manage cooldown timer
+  useEffect(() => {
+    let intervalId: ReturnType<typeof setInterval>;
+    
+    if (cooldownSeconds > 0) {
+      intervalId = setInterval(() => {
+        setCooldownSeconds((prevSeconds) => {
+          const newSeconds = prevSeconds - 1;
+          if (newSeconds <= 0) {
+            setIsRateLimited(false);
+            return 0;
+          }
+          return newSeconds;
+        });
+      }, 1000);
+    }
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [cooldownSeconds]);
 
   /** Inicia la grabación de audio */
   const startRecording = async () => {
@@ -44,10 +68,35 @@ export default function HomeScreen() {
         playsInSilentModeIOS: true,
       });
       
-      // Create and start new recording
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
+      // Create and start new recording with lower quality to minimize file size
+      // This helps avoid rate limiting by sending smaller files to OpenAI
+      const lowQualityOptions = {
+        android: {
+          extension: '.m4a',
+          outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+          audioEncoder: Audio.AndroidAudioEncoder.AAC,
+          sampleRate: 16000, // Lower sample rate (down from 44100)
+          numberOfChannels: 1, // Mono instead of stereo
+          bitRate: 64000, // Lower bit rate (down from 128000)
+        },
+        ios: {
+          extension: '.m4a',
+          outputFormat: Audio.IOSOutputFormat.MPEG4AAC,
+          audioQuality: Audio.IOSAudioQuality.LOW, // Lower quality
+          sampleRate: 16000,
+          numberOfChannels: 1,
+          bitRate: 64000,
+          linearPCMBitDepth: 16,
+          linearPCMIsBigEndian: false,
+          linearPCMIsFloat: false,
+        },
+        web: {
+          mimeType: 'audio/webm',
+          bitsPerSecond: 64000,
+        },
+      };
+
+      const { recording } = await Audio.Recording.createAsync(lowQualityOptions);
       
       setRecording(recording);
       setIsRecording(true);
@@ -107,18 +156,39 @@ export default function HomeScreen() {
       }
     } catch (err) {
       console.error('Transcription failed', err);
-      Alert.alert('Error', 'No se pudo transcribir el audio');
+      const message = (err as any)?.message || '';
+      const errorCode = (err as any)?.code;
+      
+      if (message.includes('Rate limit') || errorCode === 'RATE_LIMIT') {
+        // Get retry-after header or default to 15 seconds
+        const retryAfter = (err as any)?.retryAfter || 15;
+        setCooldownSeconds(retryAfter);
+        setIsRateLimited(true);
+        
+        Alert.alert(
+          'Límite alcanzado',
+          `Has enviado muchas solicitudes seguidas. El botón se habilitará en ${retryAfter} segundos.`
+        );
+      } else {
+        Alert.alert('Error', 'No se pudo transcribir el audio');
+      }
     } finally {
       setIsProcessing(false);
     }
   };
 
-  /** Maneja el botón de grabación */
+  /** Maneja el botón de grabación con un pequeño retraso para prevenir envíos rápidos */
   const handleRecordingPress = () => {
     if (isRecording) {
       stopRecording();
     } else {
-      startRecording();
+      // Small delay before starting to prevent rapid consecutive recordings
+      // This helps prevent rate limiting by ensuring a gap between API calls
+      setIsProcessing(true); // Disable button during the brief delay
+      setTimeout(() => {
+        startRecording();
+        setIsProcessing(false);
+      }, 300); // Brief delay for UI feedback and to prevent rapid clicks
     }
   };
 
@@ -135,8 +205,9 @@ export default function HomeScreen() {
         <RecordButton 
           isRecording={isRecording} 
           onPress={handleRecordingPress}
+          disabled={isRateLimited || isProcessing}
           recordingText={isProcessing ? 'Procesando...' : 'Tocar para parar'}
-          idleText="Tocar para hablar"
+          idleText={isRateLimited ? `Espera ${cooldownSeconds}s...` : "Tocar para hablar"}
         />
         
         <View style={styles.transcriptionRectangle}>
@@ -164,18 +235,9 @@ export default function HomeScreen() {
                   idleText="Transcripción:" 
                 />
                 <View style={styles.transcriptionTextContainer}>
-                  <View style={styles.transcriptionText}>
-                    {transcription.split(' ').map((word, index) => (
-                      <View key={index} style={styles.wordContainer}>
-                        <View style={styles.word}>
-                          <InstructionSection 
-                            isRecording={false} 
-                            idleText={word} 
-                          />
-                        </View>
-                      </View>
-                    ))}
-                  </View>
+                  <Text style={styles.transcriptionFullText}>
+                    {transcription}
+                  </Text>
                 </View>
               </>
             ) : (
@@ -253,7 +315,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   transcriptionTextContainer: {
-    paddingLeft: 20,
+    paddingHorizontal: 15,
+    backgroundColor: '#F9F9F9',
+    borderRadius: 8,
+    marginTop: 8,
+    marginBottom: 10,
   },
   transcriptionText: {
     flexDirection: 'row',
@@ -265,5 +331,13 @@ const styles = StyleSheet.create({
   },
   word: {
     transform: [{ scale: 0.7 }],
+  },
+  transcriptionFullText: {
+    fontSize: 20,
+    color: '#1a1a1a',
+    lineHeight: 28,
+    paddingVertical: 12,
+    fontWeight: '400',
+    textAlign: 'left',
   },
 });
