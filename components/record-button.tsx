@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 interface RecordButtonProps {
   isRecording: boolean;
   onPress: () => void;
+  disabled?: boolean;
   recordingText?: string;
   idleText?: string;
   size?: number;
@@ -14,6 +15,7 @@ interface RecordButtonProps {
 export default function RecordButton({ 
   isRecording, 
   onPress, 
+  disabled = false,
   recordingText = 'Tocar para parar', 
   idleText = 'Tocar para hablar',
   size = 220,
@@ -103,9 +105,11 @@ export default function RecordButton({
             style={[
               styles.recordButton, 
               { width: size, height: size, borderRadius: buttonRadius },
-              isRecording && styles.recordButtonActive
+              isRecording && styles.recordButtonActive,
+              disabled && styles.recordButtonDisabled
             ]}
             onPress={onPress}
+            disabled={disabled}
             activeOpacity={0.8}
           >
             <Ionicons 
@@ -156,6 +160,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF6B6B', // Rojo del tema cuando está grabando
     shadowColor: '#FF6B6B',
     shadowOpacity: 0.5,
+  },
+  recordButtonDisabled: {
+    backgroundColor: '#D3D3D3', // Gris claro cuando está deshabilitado
+    shadowColor: '#B0B0B0',
+    shadowOpacity: 0.3,
+    opacity: 0.7,
   },
   buttonText: {
     fontSize: 36, // --text-xl (1.8rem * 20px = 36px)
