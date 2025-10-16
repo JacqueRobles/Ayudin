@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, SafeAreaView, Alert } from 'react-native';
+import { router } from 'expo-router';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
@@ -124,7 +125,9 @@ export default function HomeScreen() {
 
   /** Maneja el botón de inicio */
   const handleHomePress = () => {
-    setTranscription(null);
+    // Navegar a la pantalla de inicio usando el router
+    router.push('/home');
+    setTranscription(null); // También limpiar transcripción al navegar
   };
 
   return (
