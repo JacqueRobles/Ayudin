@@ -1,10 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ViewStyle, TextStyle } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ViewStyle, TextStyle, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { colors, spacing, layout, shadows, tokens } from '@/styles';
-import AppStatusBar from '@/components/status-bar';
+import { colors, spacing, layout, shadows, tokens, typography } from '@/styles';
 
 interface AppItem {
   id: string;
@@ -29,6 +28,10 @@ export default function HomeScreen() {
 
   const handleOpenModal = () => {
     router.push('/modal'); // Abrir modal de ejemplo
+  };
+
+  const handleOpenYouTube = () => {
+    Linking.openURL('https://www.youtube.com'); // Abrir aplicación YouTube
   };
 
   const handleBackToMain = () => {
@@ -120,11 +123,11 @@ export default function HomeScreen() {
       action: handleOpenModal
     },
     {
-      id: 'musica',
-      name: 'MÚSICA',
-      icon: 'musical-notes',
-      color: tokens.colors.status.warning, // Naranja para música
-      action: handleOpenModal
+      id: 'youtube',
+      name: 'YOUTUBE',
+      icon: 'logo-youtube',
+      color: tokens.colors.status.error, // Rojo característico de YouTube
+      action: handleOpenYouTube
     }
   ];
 
@@ -136,9 +139,6 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Status bar con hora, batería, etc. */}
-      <AppStatusBar />
-
       {/* Contenido principal scrollable */}
       <View style={styles.contentContainer}>
         {/* Grid de aplicaciones (6 por página) */}
@@ -211,6 +211,7 @@ const styles = StyleSheet.create({
 
   contentContainer: {
     flex: 1,
+    paddingTop: tokens.spacing.lg, // Espacio adicional para evitar notch/cámara
   } as ViewStyle,
 
   bottomControls: {
@@ -227,7 +228,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: tokens.spacing.lg,
-    paddingTop: tokens.spacing.xl,
+    paddingTop: tokens.spacing.xxl, // Mayor separación del encabezado para evitar notch/cámara
     paddingBottom: tokens.spacing.xl,
   } as ViewStyle,
 
@@ -243,8 +244,8 @@ const styles = StyleSheet.create({
   } as ViewStyle,
 
   appName: {
-    fontSize: 16, // Tamaño más grande y legible
-    fontWeight: '600',
+    ...typography.textSize.xl, // 20px para igualar legibilidad con index
+    ...typography.fontWeight.semibold,
     color: 'white',
     textAlign: 'center',
     marginTop: tokens.spacing.md,
@@ -263,8 +264,8 @@ const styles = StyleSheet.create({
   } as ViewStyle,
 
   backButtonText: {
-    fontSize: 20, // Tamaño más prominente
-    fontWeight: '700',
+    ...typography.textSize.xxl, // 24px, consistente con tamaños grandes de index
+    ...typography.fontWeight.bold,
     color: 'white',
     marginLeft: tokens.spacing.md,
   } as TextStyle,
@@ -279,7 +280,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.lg,
     paddingVertical: tokens.spacing.lg,
     ...layout.border.lg,
-    ...colors.bg.secondary,
+    backgroundColor: tokens.colors.status.warning, // Amarillo cálido suave para tono cálido y alta luminosidad
+    borderColor: tokens.colors.ui.border, // Borde gris cálido para contraste
     ...shadows.md,
   } as ViewStyle,
 
